@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0d0d0d;
+  --foreground: #ededed;
+  --primary-color: #6c5ce7;
+  --accent-color: #00cec9;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(108, 92, 231, 0.15) 0%, transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(0, 206, 201, 0.15) 0%, transparent 25%);
+  min-height: 100vh;
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
