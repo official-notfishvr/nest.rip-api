@@ -1,0 +1,25 @@
+{
+    "NestRip": {
+        "BaseUrl": "https://nest.rip/api/",
+        "ResolutionIp": "104.18.8.83",
+        "ClientId": "",
+        "ClientSecret": "",
+        "RedirectUri": "https://yourwebsite.com/oauth/callback",
+        "EnableResponseLogging": true
+    },
+    "MongoDB": {
+        "ConnectionString": "",
+        "DatabaseName": "NestRipApp"
+    },
+    "Cors": {
+        "AllowedOrigins": [
+            "http://localhost:3000",
+            "https://yourwebsite.com"
+        ]
+    },
+    "Server": {
+        "Port": 4616,
+        "DashboardUrl": "https://yourwebsite.com/dashboard",
+        "CookieDomain": "yourwebsite.com"
+    }
+}

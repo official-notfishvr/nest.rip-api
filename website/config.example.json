@@ -1,0 +1,11 @@
+{
+    "api": {
+        "baseUrl": "https://yourwebsiteAPI.com/api"
+    },
+    "oauth": {
+        "authorizeUrl": "https://nest.rip/oauth/authorize",
+        "clientId": "",
+        "redirectUri": "https://yourwebsite.com/oauth/callback",
+        "scopes": "identify email uploads.read uploads.write shorts.read shorts.write mail.read mail.write"
+    }
+}
