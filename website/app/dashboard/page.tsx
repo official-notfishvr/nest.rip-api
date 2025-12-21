@@ -78,7 +78,8 @@ export default function Dashboard() {
     const [totalFiles, setTotalFiles] = useState(0);
     const [sortColumn, setSortColumn] = useState<SortColumn>("created_at");
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-
+    const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+    const [renamingFolderName, setRenamingFolderName] = useState("");
 
     const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null);
@@ -192,6 +193,40 @@ export default function Dashboard() {
         }
     };
 
+    const handleRenameFolder = async (id: string, currentName: string) => {
+        setRenamingFolderId(id);
+        setRenamingFolderName(currentName);
+    };
+
+    const handleConfirmRename = async () => {
+        if (!renamingFolderId) return;
+
+        if (renamingFolderName.length < 3) {
+            alert("Folder name must be at least 3 characters");
+            return;
+        }
+
+        const res = await fetch(`${API_BASE}/folders/${renamingFolderId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: renamingFolderName }),
+            credentials: "include"
+        });
+
+        if (res.ok) {
+            setRenamingFolderId(null);
+            setRenamingFolderName("");
+            await fetchFolders();
+        } else {
+            try {
+                const error = await res.json();
+                alert(error.message || "Failed to rename folder");
+            } catch {
+                alert("Failed to rename folder");
+            }
+        }
+    };
+
     const handleDeleteFolder = async (id: string) => {
         if (!confirm("Delete folder? Files inside will be moved out, not deleted.")) return;
         await fetch(`${API_BASE}/folders/${id}`, { method: "DELETE", credentials: "include" });
@@ -276,8 +311,12 @@ export default function Dashboard() {
         }
     };
 
-    const getImageUrl = (cdnFileName: string) => {
-        return `${cdnPrefix}/${cdnFileName}`;
+    const getImageUrl = (file: FileItem) => {
+        if (file.accessibleURL) {
+            return `${API_BASE}/proxy/image?url=${encodeURIComponent(file.accessibleURL)}`;
+        }
+        const fullUrl = `${cdnPrefix}/${file.cdn_file_name}`;
+        return `${API_BASE}/proxy/image?url=${encodeURIComponent(fullUrl)}`;
     };
 
     const isImage = (mimeType: string) => mimeType?.startsWith("image/");
@@ -407,22 +446,36 @@ export default function Dashboard() {
                                             )}
                                         </div>
                                     </div>
-                                    <a href={file.accessibleURL} target="_blank" rel="noreferrer">
-                                        <div className="aspect-square bg-black/20 flex items-center justify-center overflow-hidden">
-                                            {isImage(file.mime_type) ? (
-                                                <img
-                                                    src={getImageUrl(file.cdn_file_name)}
-                                                    alt={file.filename}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                    loading="lazy"
-                                                />
-                                            ) : (
-                                                <div className="text-zinc-500 text-xs text-center p-2">
-                                                    {file.mime_type?.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </a>
+                                    <div className="aspect-square bg-black/20 flex items-center justify-center overflow-hidden">
+                                        {isImage(file.mime_type) ? (
+                                            <img
+                                                src={getImageUrl(file)}
+                                                alt={file.filename}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                loading="lazy"
+                                                referrerPolicy="no-referrer"
+                                                onError={(e) => {
+                                                    console.error("Failed to load image");
+                                                    const parent = e.currentTarget.parentElement;
+                                                    if (parent) {
+                                                        e.currentTarget.style.display = 'none';
+                                                        const fallback = parent.querySelector('[data-image-fallback]');
+                                                        if (fallback) fallback.classList.remove('hidden');
+                                                    }
+                                                }}
+                                            />
+                                        ) : null}
+                                        {isImage(file.mime_type) && (
+                                            <div className="text-zinc-500 text-xs text-center p-2 hidden" data-image-fallback>
+                                                {file.mime_type?.split('/')[1]?.toUpperCase() || 'IMAGE'}
+                                            </div>
+                                        )}
+                                        {!isImage(file.mime_type) && (
+                                            <div className="text-zinc-500 text-xs text-center p-2">
+                                                {file.mime_type?.split('/')[1]?.toUpperCase() || 'FILE'}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="p-3">
                                         <p className="text-sm truncate text-zinc-300" title={file.original_filename || file.filename}>
                                             {file.filename}
@@ -485,12 +538,28 @@ export default function Dashboard() {
                                     <div className="aspect-square bg-black/20 flex items-center justify-center overflow-hidden">
                                         {isImage(file.mime_type) ? (
                                             <img
-                                                src={getImageUrl(file.cdn_file_name)}
+                                                src={`${API_BASE}/proxy/image?url=${encodeURIComponent(`${cdnPrefix}/${file.cdn_file_name}`)}`}
                                                 alt={file.original_filename}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                                 loading="lazy"
+                                                referrerPolicy="no-referrer"
+                                                onError={(e) => {
+                                                    console.error("Failed to load image");
+                                                    const parent = e.currentTarget.parentElement;
+                                                    if (parent) {
+                                                        e.currentTarget.style.display = 'none';
+                                                        const fallback = parent.querySelector('[data-image-fallback]');
+                                                        if (fallback) fallback.classList.remove('hidden');
+                                                    }
+                                                }}
                                             />
-                                        ) : (
+                                        ) : null}
+                                        {isImage(file.mime_type) && (
+                                            <div className="text-zinc-500 text-xs text-center p-2 hidden" data-image-fallback>
+                                                {file.mime_type?.split('/')[1]?.toUpperCase() || 'IMAGE'}
+                                            </div>
+                                        )}
+                                        {!isImage(file.mime_type) && (
                                             <div className="text-zinc-500 text-xs text-center p-2">
                                                 {file.mime_type?.split('/')[1]?.toUpperCase() || 'FILE'}
                                             </div>
@@ -536,28 +605,54 @@ export default function Dashboard() {
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {folders.map(folder => (
                                 <div key={folder.id} className="bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/10 transition-colors">
-                                    <div
-                                        className="flex items-center gap-3 mb-3 cursor-pointer"
-                                        onClick={() => { setActiveTab("files"); setCurrentFolder(folder); }}
-                                    >
-                                        <div className="w-10 h-10 bg-[#6c5ce7]/20 rounded-lg flex items-center justify-center">
-                                            <svg className="w-5 h-5 text-[#6c5ce7]" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                            </svg>
+                                    {renamingFolderId === folder.id ? (
+                                        <div className="mb-3 flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={renamingFolderName}
+                                                onChange={(e) => setRenamingFolderName(e.target.value)}
+                                                className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-sm text-white"
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={handleConfirmRename}
+                                                className="px-2 py-1 bg-[#6c5ce7] hover:bg-[#a29bfe] text-white rounded text-xs"
+                                            >
+                                                Save
+                                            </button>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{folder.name}</p>
-                                            <p className="text-xs text-zinc-500">{folder.file_count} files</p>
+                                    ) : (
+                                        <div
+                                            className="flex items-center gap-3 mb-3 cursor-pointer"
+                                            onClick={() => { setActiveTab("files"); setCurrentFolder(folder); }}
+                                        >
+                                            <div className="w-10 h-10 bg-[#6c5ce7]/20 rounded-lg flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-[#6c5ce7]" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate">{folder.name}</p>
+                                                <p className="text-xs text-zinc-500">{folder.file_count} files</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                     <div className="flex justify-between items-center text-xs text-zinc-500">
                                         <span>{folder.public ? "Public" : "Private"}</span>
-                                        <button
-                                            onClick={() => handleDeleteFolder(folder.id)}
-                                            className="text-red-400 hover:text-red-300"
-                                        >
-                                            Delete
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleRenameFolder(folder.id, folder.name)}
+                                                className="text-blue-400 hover:text-blue-300"
+                                            >
+                                                Rename
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteFolder(folder.id)}
+                                                className="text-red-400 hover:text-red-300"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

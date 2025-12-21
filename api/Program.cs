@@ -82,6 +82,7 @@ builder
     );
 
 var serverPort = builder.Configuration.GetValue<int>("Server:Port", 4616);
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenLocalhost(serverPort);
@@ -101,7 +102,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowNextJs");
-
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();

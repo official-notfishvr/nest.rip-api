@@ -529,4 +529,10 @@ namespace url.Models
         [JsonPropertyName("forwardTo")]
         public string? ForwardTo { get; set; }
     }
+
+    public class RenameFolderRequest
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+    }
 }

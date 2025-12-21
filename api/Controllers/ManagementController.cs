@@ -243,6 +243,28 @@ namespace url.Controllers
             }
         }
 
+        [HttpPut("folders/{id}/rename")]
+        public async Task<IActionResult> RenameFolder(string id, [FromBody] UpdateFolderRequest request)
+        {
+            try
+            {
+                var token = await GetUserTokenAsync();
+                if (token == null)
+                    return Unauthorized();
+
+                if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 3)
+                    return BadRequest(new { message = "Folder name must be at least 3 characters" });
+
+                _client.SetAccessToken(token.AccessToken!);
+                var folder = await _client.UpdateFolderAsync(id, request.Name, null);
+                return Ok(folder);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
         [HttpDelete("folders/{id}")]
         public async Task<IActionResult> DeleteFolder(string id)
         {
